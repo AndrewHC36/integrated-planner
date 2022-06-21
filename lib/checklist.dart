@@ -11,8 +11,8 @@ class Checklist extends StatefulWidget {
 }
 
 class _ChecklistState extends State<Checklist> {
-  final List<String> entries = <String>['A', 'B', 'C'];
-  final List<int> colorCodes = <int>[600, 500, 100];
+  final List<int> taskID = <int>[0, 1, 2, 4, 6];
+  final List<String> taskNames = <String>['A', 'B', 'C', 'D', 'E'];
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +33,108 @@ class _ChecklistState extends State<Checklist> {
           ]
         ),
       ),
-      body: ListView.builder(
+      body: Column(
+        children: [
+          Expanded(
+            child: ReorderableListView.builder(
+              // padding: EdgeInsets.all(10),
+              itemCount: taskNames.length,
+              itemBuilder: (BuildContext context, int index) {
+                return ListTile(
+                  key: ValueKey(taskID[index]),
+                  // tileColor: Colors.black12,
+                  title: Container(
+                    height: 50,
+                    color: Colors.black12,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            child: Text('Entry ${taskNames[index]}'),
+                            padding: EdgeInsets.symmetric(horizontal: 10.0),
+                          ),
+                        ),
+                        Container(
+                          child: IconButton(
+                              icon: Icon(Icons.menu),
+                              onPressed: () {  }
+                          ),
+                          color: Colors.blue,
+                        ),
+                        Container(
+                          child: IconButton(
+                            icon: Icon(Icons.cancel_outlined),
+                            onPressed: () {  },
+                          ),
+                          color: Colors.red,
+                        ),
+                      ],
+                    ),
+                    // margin: const EdgeInsets.symmetric(vertical: 1.0),
+                  ),
+                );
+              },
+              onReorder: (int oldIndex, int newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) {
+                    newIndex -= 1;
+                  }
+                  final int elTid = taskID.removeAt(oldIndex);
+                  final String elTnm = taskNames.removeAt(oldIndex);
+                  taskID.insert(newIndex, elTid);
+                  taskNames.insert(newIndex, elTnm);
+                });
+              },
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (BuildContext context) => AddTask())
+              );
+            },
+            child: const Text("Add Task"),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+/*
+ListView.builder(
         itemCount: entries.length+1,
         itemBuilder: (BuildContext context, int index) {
           if (index != entries.length) {
             return Container(
               height: 50,
-              color: Colors.amber[colorCodes[index]],
-              child: Center(child: Text('Entry ${entries[index]}')),
+              color: Colors.black12,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      child: Text('Entry ${entries[index]}'),
+                      padding: EdgeInsets.symmetric(horizontal: 10.0),
+                    ),
+                  ),
+                  Container(
+                    child: IconButton(
+                      icon: Icon(Icons.menu),
+                      onPressed: () {  }
+                    ),
+                    color: Colors.blue,
+                  ),
+                  Container(
+                    child: IconButton(
+                      icon: Icon(Icons.cancel_outlined),
+                      onPressed: () {  },
+                    ),
+                    color: Colors.red,
+                  ),
+                ],
+              ),
+              margin: const EdgeInsets.symmetric(vertical: 1.0),
             );
           } else {  // if last one
             return ElevatedButton(
@@ -55,6 +149,36 @@ class _ChecklistState extends State<Checklist> {
           }
         }
         )
-    );
-  }
-}
+ */
+
+/*
+// Container(
+                  //   height: 50,
+                  //   color: Colors.black12,
+                  //   child: Row(
+                  //     children: [
+                  //       Expanded(
+                  //         child: Container(
+                  //           child: Text('Entry ${entries[index]}'),
+                  //           padding: EdgeInsets.symmetric(horizontal: 10.0),
+                  //         ),
+                  //       ),
+                  //       Container(
+                  //         child: IconButton(
+                  //             icon: Icon(Icons.menu),
+                  //             onPressed: () {  }
+                  //         ),
+                  //         color: Colors.blue,
+                  //       ),
+                  //       Container(
+                  //         child: IconButton(
+                  //           icon: Icon(Icons.cancel_outlined),
+                  //           onPressed: () {  },
+                  //         ),
+                  //         color: Colors.red,
+                  //       ),
+                  //     ],
+                  //   ),
+                  //   margin: const EdgeInsets.symmetric(vertical: 1.0),
+                  // ),
+ */

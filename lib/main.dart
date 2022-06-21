@@ -40,6 +40,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final _formKeySignUp = GlobalKey<FormState>();
+  final _formKeyLogIn = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -51,38 +53,101 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            Image.asset("logo.png"),
             Container(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-
-                children: const [
-                  Text(
-                    "Log in",
-                    style: TextStyle(
-                      fontSize: 36.0,
+              child: Form(
+                key: _formKeyLogIn,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      "Log in",
+                      style: TextStyle(
+                        fontSize: 36.0,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  Text("Text fields...")
-                ],
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        icon: Icon(Icons.person),
+                        labelText: 'Username',
+                      ),
+                      validator: (String? value) {
+                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
+                      },
+                    ),
+                    TextFormField(
+                      obscureText: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      decoration: const InputDecoration(
+                        icon: Icon(Icons.lock),
+                        labelText: 'Password',
+                      ),
+                      validator: (String? value) {
+                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
+                      },
+                    )
+                  ],
+                ),
               ),
               color: Colors.blueGrey,
               padding: EdgeInsets.all(5.0),
               margin: EdgeInsets.all(5.0),
             ),
             Container(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: const [
-                  Text(
-                    "Sign up",
-                    style: TextStyle(
-                      fontSize: 36.0,
+              child: Form(
+                key: _formKeySignUp,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      "Sign up",
+                      style: TextStyle(
+                        fontSize: 36.0,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  Text("Text fields...")
-                ],
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        icon: Icon(Icons.person),
+                        labelText: 'Username',
+                      ),
+                      validator: (String? value) {
+                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
+                      },
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        icon: Icon(Icons.mail),
+                        labelText: 'Email',
+                      ),
+                      validator: (String? value) {
+                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
+                      },
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        icon: Icon(Icons.lock),
+                        hintText: 'What do people call you?',
+                        labelText: 'Create Password',
+                      ),
+                      validator: (String? value) {
+                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
+                      },
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        icon: Icon(Icons.lock),
+                        hintText: 'What do people call you?',
+                        labelText: 'Confirm Password',
+                      ),
+                      validator: (String? value) {
+                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
+                      },
+                    )
+                  ],
+                ),
               ),
               color: Colors.grey,
               padding: EdgeInsets.all(5.0),
