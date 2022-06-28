@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'add_task.dart';
+import 'modify_task.dart';
 
 class Checklist extends StatefulWidget {
   const Checklist({Key? key}) : super(key: key);
@@ -57,7 +57,12 @@ class _ChecklistState extends State<Checklist> {
                         Container(
                           child: IconButton(
                               icon: Icon(Icons.menu),
-                              onPressed: () {  }
+                              onPressed: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (BuildContext context) => ModifyTask())
+                                );
+                              }
                           ),
                           color: Colors.blue,
                         ),
@@ -91,7 +96,7 @@ class _ChecklistState extends State<Checklist> {
             onPressed: () {
               Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (BuildContext context) => AddTask())
+                  MaterialPageRoute(builder: (BuildContext context) => ModifyTask())
               );
             },
             child: const Text("Add Task"),
@@ -102,83 +107,4 @@ class _ChecklistState extends State<Checklist> {
   }
 }
 
-/*
-ListView.builder(
-        itemCount: entries.length+1,
-        itemBuilder: (BuildContext context, int index) {
-          if (index != entries.length) {
-            return Container(
-              height: 50,
-              color: Colors.black12,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      child: Text('Entry ${entries[index]}'),
-                      padding: EdgeInsets.symmetric(horizontal: 10.0),
-                    ),
-                  ),
-                  Container(
-                    child: IconButton(
-                      icon: Icon(Icons.menu),
-                      onPressed: () {  }
-                    ),
-                    color: Colors.blue,
-                  ),
-                  Container(
-                    child: IconButton(
-                      icon: Icon(Icons.cancel_outlined),
-                      onPressed: () {  },
-                    ),
-                    color: Colors.red,
-                  ),
-                ],
-              ),
-              margin: const EdgeInsets.symmetric(vertical: 1.0),
-            );
-          } else {  // if last one
-            return ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (BuildContext context) => AddTask())
-                );
-              },
-              child: const Text("Add Task"),
-            );
-          }
-        }
-        )
- */
 
-/*
-// Container(
-                  //   height: 50,
-                  //   color: Colors.black12,
-                  //   child: Row(
-                  //     children: [
-                  //       Expanded(
-                  //         child: Container(
-                  //           child: Text('Entry ${entries[index]}'),
-                  //           padding: EdgeInsets.symmetric(horizontal: 10.0),
-                  //         ),
-                  //       ),
-                  //       Container(
-                  //         child: IconButton(
-                  //             icon: Icon(Icons.menu),
-                  //             onPressed: () {  }
-                  //         ),
-                  //         color: Colors.blue,
-                  //       ),
-                  //       Container(
-                  //         child: IconButton(
-                  //           icon: Icon(Icons.cancel_outlined),
-                  //           onPressed: () {  },
-                  //         ),
-                  //         color: Colors.red,
-                  //       ),
-                  //     ],
-                  //   ),
-                  //   margin: const EdgeInsets.symmetric(vertical: 1.0),
-                  // ),
- */
