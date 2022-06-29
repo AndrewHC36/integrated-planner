@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:integrated_planner/task_item.dart';
 
 import 'modify_task.dart';
 
@@ -11,8 +12,15 @@ class Checklist extends StatefulWidget {
 }
 
 class _ChecklistState extends State<Checklist> {
-  final List<int> taskID = <int>[0, 1, 2, 4, 6];
-  final List<String> taskNames = <String>['A', 'B', 'C', 'D', 'E'];
+  // final List<int> taskID = <int>[0, 1, 2, 4, 6];
+  // final List<String> taskNames = <String>['Entry A', 'Entry B', 'Entry C', 'Entry D', 'Entry E'];
+  final List<TaskItem> tasks = <TaskItem>[
+    TaskItem(0, "Task A", "", EndMethod.duration, "", Duration()),
+    TaskItem(3, "Task B", "", EndMethod.endTime, "??", null),
+    TaskItem(5, "Task C", "", EndMethod.duration, "", Duration()),
+    TaskItem(6, "Task D", "", EndMethod.endTime, "??", null),
+    TaskItem(10, "Task E", "", EndMethod.duration, "", Duration()),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -38,44 +46,58 @@ class _ChecklistState extends State<Checklist> {
           Expanded(
             child: ReorderableListView.builder(
               // padding: EdgeInsets.all(10),
-              itemCount: taskNames.length,
+              itemCount: tasks.length,
               itemBuilder: (BuildContext context, int index) {
-                return ListTile(
-                  key: ValueKey(taskID[index]),
-                  // tileColor: Colors.black12,
-                  title: Container(
-                    height: 50,
-                    color: Colors.black12,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            child: Text('Entry ${taskNames[index]}'),
-                            padding: EdgeInsets.symmetric(horizontal: 10.0),
-                          ),
-                        ),
-                        Container(
-                          child: IconButton(
-                              icon: Icon(Icons.menu),
-                              onPressed: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (BuildContext context) => ModifyTask())
-                                );
-                              }
-                          ),
-                          color: Colors.blue,
-                        ),
-                        Container(
-                          child: IconButton(
-                            icon: Icon(Icons.cancel_outlined),
-                            onPressed: () {  },
-                          ),
-                          color: Colors.red,
-                        ),
-                      ],
+                return Dismissible(
+                  key: ValueKey(tasks[index].id),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (DismissDirection direction) {
+                    setState(() {
+                      tasks.removeAt(index);
+                    });
+                  },
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      child: const Icon(Icons.cancel_outlined),
+                      padding: EdgeInsets.all(10.0),
                     ),
-                    // margin: const EdgeInsets.symmetric(vertical: 1.0),
+                  ),
+                  child: ListTile(
+                    key: ValueKey(tasks[index].id),
+                    // tileColor: Colors.black12,
+                    title: Container(
+                      height: 50,
+                      color: Colors.black12,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              child: Text(tasks[index].name),
+                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                            ),
+                          ),
+                          Container(
+                            child: IconButton(
+                                icon: const Icon(Icons.menu),
+                                onPressed: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (BuildContext context) => ModifyTask(
+                                          initTaskName: tasks[index].name,
+                                        ),
+                                      )
+                                  );
+                                }
+                            ),
+                            color: Colors.blue,
+                          ),
+                        ],
+                      ),
+                      // margin: const EdgeInsets.symmetric(vertical: 1.0),
+                    ),
                   ),
                 );
               },
@@ -84,10 +106,8 @@ class _ChecklistState extends State<Checklist> {
                   if (newIndex > oldIndex) {
                     newIndex -= 1;
                   }
-                  final int elTid = taskID.removeAt(oldIndex);
-                  final String elTnm = taskNames.removeAt(oldIndex);
-                  taskID.insert(newIndex, elTid);
-                  taskNames.insert(newIndex, elTnm);
+                  TaskItem taskItem = tasks.removeAt(oldIndex);
+                  tasks.insert(newIndex, taskItem);
                 });
               },
             ),
