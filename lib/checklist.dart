@@ -12,14 +12,13 @@ class Checklist extends StatefulWidget {
 }
 
 class _ChecklistState extends State<Checklist> {
-  // final List<int> taskID = <int>[0, 1, 2, 4, 6];
-  // final List<String> taskNames = <String>['Entry A', 'Entry B', 'Entry C', 'Entry D', 'Entry E'];
+  int idCounter = 20;
   final List<TaskItem> tasks = <TaskItem>[
-    TaskItem(0, "Task A", "", EndMethod.duration, "", Duration()),
-    TaskItem(3, "Task B", "", EndMethod.endTime, "??", null),
-    TaskItem(5, "Task C", "", EndMethod.duration, "", Duration()),
-    TaskItem(6, "Task D", "", EndMethod.endTime, "??", null),
-    TaskItem(10, "Task E", "", EndMethod.duration, "", Duration()),
+    TaskItem(0, "Task A", "2022-07-04 04:50", EndMethod.duration, null, Duration()),
+    TaskItem(3, "Task B", "2022-06-04 03:55", EndMethod.endTime, "2022-07-04 04:50", null),
+    TaskItem(5, "Task C", "2022-05-04 04:45", EndMethod.duration, null, Duration()),
+    TaskItem(6, "Task D", "2022-04-04 20:50", EndMethod.endTime, "2022-07-04 00:00", null),
+    TaskItem(10, "Task E", "2022-03-04 12:50", EndMethod.duration, null, Duration()),
   ];
 
   @override
@@ -66,7 +65,6 @@ class _ChecklistState extends State<Checklist> {
                   ),
                   child: ListTile(
                     key: ValueKey(tasks[index].id),
-                    // tileColor: Colors.black12,
                     title: Container(
                       height: 50,
                       color: Colors.black12,
@@ -81,15 +79,21 @@ class _ChecklistState extends State<Checklist> {
                           Container(
                             child: IconButton(
                                 icon: const Icon(Icons.menu),
-                                onPressed: () {
-                                  Navigator.push(
+                                onPressed: () async {
+                                  final taskItem = await Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (BuildContext context) => ModifyTask(
-                                          initTaskName: tasks[index].name,
+                                          id: tasks[index].id,
+                                          initTaskItem: tasks[index],
                                         ),
                                       )
                                   );
+                                  if(taskItem != null) {
+                                    setState(() {
+                                      tasks[index] = taskItem;
+                                    });
+                                  }
                                 }
                             ),
                             color: Colors.blue,
@@ -113,11 +117,17 @@ class _ChecklistState extends State<Checklist> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final taskItem = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (BuildContext context) => ModifyTask())
+                  MaterialPageRoute(builder: (BuildContext context) => ModifyTask(id: idCounter,))
               );
+              if(taskItem != null) {
+                setState(() {
+                  tasks.add(taskItem);
+                  idCounter++;
+                });
+              }
             },
             child: const Text("Add Task"),
           )
