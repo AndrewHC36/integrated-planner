@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:integrated_planner/task_item.dart';
@@ -20,6 +22,9 @@ class _ChecklistState extends State<Checklist> {
     TaskItem(6, "Task D", "2022-04-04 20:50", EndMethod.endTime, "2022-07-04 00:00", null),
     TaskItem(10, "Task E", "2022-03-04 12:50", EndMethod.duration, null, Duration()),
   ];
+
+  final List<TaskItem> deletedTasks = <TaskItem>[];  // for records
+  final List<TaskItem> completedTasks = <TaskItem>[];  // for records
 
   @override
   Widget build(BuildContext context) {
@@ -49,17 +54,29 @@ class _ChecklistState extends State<Checklist> {
               itemBuilder: (BuildContext context, int index) {
                 return Dismissible(
                   key: ValueKey(tasks[index].id),
-                  direction: DismissDirection.endToStart,
                   onDismissed: (DismissDirection direction) {
                     setState(() {
-                      tasks.removeAt(index);
+                      log(direction.toString());
+                      if(direction == DismissDirection.endToStart) {
+                        completedTasks.add(tasks.removeAt(index));
+                      } else {
+                        deletedTasks.add(tasks.removeAt(index));
+                      }
                     });
                   },
                   background: Container(
                     color: Colors.red,
-                    alignment: Alignment.centerRight,
+                    alignment: Alignment.centerLeft,
                     child: Container(
                       child: const Icon(Icons.cancel_outlined),
+                      padding: EdgeInsets.all(10.0),
+                    ),
+                  ),
+                  secondaryBackground: Container(
+                    color: Colors.green,
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      child: const Icon(Icons.check_circle_outline),
                       padding: EdgeInsets.all(10.0),
                     ),
                   ),
@@ -116,22 +133,24 @@ class _ChecklistState extends State<Checklist> {
               },
             ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final taskItem = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (BuildContext context) => ModifyTask(id: idCounter,))
-              );
-              if(taskItem != null) {
-                setState(() {
-                  tasks.add(taskItem);
-                  idCounter++;
-                });
-              }
-            },
-            child: const Text("Add Task"),
-          )
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final taskItem = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (BuildContext context) => ModifyTask(id: idCounter,))
+          );
+          if(taskItem != null) {
+            setState(() {
+              tasks.add(taskItem);
+              idCounter++;
+            });
+          }
+        },
+        label: const Text("Add Task"),
+        icon: const Icon(Icons.add),
+        backgroundColor: Colors.lightGreen,
       ),
     );
   }

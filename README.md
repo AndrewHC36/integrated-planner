@@ -1,16 +1,14 @@
 # integrated_planner
 
-A new Flutter project.
+Disclaimer: This was before I realized Google Tasks exists.
 
-## Getting Started
+## Introduction
 
-This project is a starting point for a Flutter application.
+This Flutter app lets you integrate the simplistic TODO tasklist and the complicated Google Calendar
+to get the bost of both world. For me, personally, Google Calendar was always something way too
+complicated to quickly jot down all the tasks you will be doing, while also looking at those tasks
+in a neat, concise place. But, unlike Google Calendar, you cannot easily manage your time and
+get a intuitive idea how much each of those tasks/events are taking up your day. Thus, I present this
+app as to combine the best of both world.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+:)
