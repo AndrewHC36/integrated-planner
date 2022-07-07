@@ -1,5 +1,13 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis/calendar/v3.dart' as api;
 import 'package:integrated_planner/checklist.dart';
+import 'package:http/http.dart' as http;
+import 'google_http_client.dart';
+
+
 
 void main() {
   runApp(const MyApp());
@@ -40,8 +48,31 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _formKeySignUp = GlobalKey<FormState>();
-  final _formKeyLogIn = GlobalKey<FormState>();
+  static const _scopes = <String>[api.CalendarApi.calendarEventsScope, api.CalendarApi.calendarReadonlyScope];
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<http.Client> getHttpClient() async {
+    final _googleSignIn = GoogleSignIn(
+      scopes: _scopes,
+    );
+
+    try {
+      GoogleSignInAccount googleUser = (await _googleSignIn.signIn())!;
+      var headers = (await googleUser.authHeaders);
+
+      final baseClient = new http.Client();
+      final authenticateClient = AuthenticateClient(headers, baseClient);
+
+      return authenticateClient;
+    } catch (error) {
+      print(error);
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,113 +85,46 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Image.asset("logo.png"),
-            Container(
-              child: Form(
-                key: _formKeyLogIn,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      "Log in",
-                      style: TextStyle(
-                        fontSize: 36.0,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.person),
-                        labelText: 'Username',
-                      ),
-                      validator: (String? value) {
-                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
-                      },
-                    ),
-                    TextFormField(
-                      obscureText: true,
-                      enableSuggestions: false,
-                      autocorrect: false,
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.lock),
-                        labelText: 'Password',
-                      ),
-                      validator: (String? value) {
-                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
-                      },
-                    )
-                  ],
-                ),
-              ),
-              color: Colors.blueGrey,
-              padding: EdgeInsets.all(5.0),
-              margin: EdgeInsets.all(5.0),
-            ),
-            Container(
-              child: Form(
-                key: _formKeySignUp,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      "Sign up",
-                      style: TextStyle(
-                        fontSize: 36.0,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.person),
-                        labelText: 'Username',
-                      ),
-                      validator: (String? value) {
-                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
-                      },
-                    ),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.mail),
-                        labelText: 'Email',
-                      ),
-                      validator: (String? value) {
-                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
-                      },
-                    ),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.lock),
-                        hintText: 'What do people call you?',
-                        labelText: 'Create Password',
-                      ),
-                      validator: (String? value) {
-                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
-                      },
-                    ),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.lock),
-                        hintText: 'What do people call you?',
-                        labelText: 'Confirm Password',
-                      ),
-                      validator: (String? value) {
-                        return (value != null && value.contains('@')) ? 'Do not use the @ char.' : null;
-                      },
-                    )
-                  ],
-                ),
-              ),
-              color: Colors.grey,
-              padding: EdgeInsets.all(5.0),
-              margin: EdgeInsets.all(5.0),
-            ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                var client = await getHttpClient();
+                var calendar = api.CalendarApi(client);
+
+                var calendarList = await calendar.calendarList.list();
+                for (var element in calendarList.items!) {
+                  log(element.summary!);
+                }
+
+                // String calendarId = "primary";
+                //
+                // api.Event event = api.Event();
+                //
+                // var start = api.EventDateTime();
+                // start.timeZone = "GMT+05:00";
+                // start.dateTime = DateTime(2022, 6, 20);
+                // var end = api.EventDateTime();
+                // end.timeZone = "GMT+05:00";
+                // start.dateTime = DateTime(2022, 6, 30);
+                //
+                // event.summary = "Test";
+                // event.start = start;
+                // event.end = end;
+                //
+                // calendar.events.insert(event, calendarId).then((value) {
+                //   print("ADDING_________________${value.status}");
+                //   if (value.status == "confirmed") {
+                //     log('Event added in google calendar');
+                //   } else {
+                //     log("Unable to add event in google calendar");
+                //   }
+                // });
+
                 Navigator.push(
                     context,
                     MaterialPageRoute(builder: (BuildContext context) => Checklist())
                 );
               },
-              child: const Text("Next page!"),
+              child: const Text("Sign in with Google."),
             ),
           ],
         ),
