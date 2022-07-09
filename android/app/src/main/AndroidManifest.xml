@@ -1,7 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.integrated_planner">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+
    <application
-        android:label="integrated_planner"
+        android:label="Integrated Planner"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

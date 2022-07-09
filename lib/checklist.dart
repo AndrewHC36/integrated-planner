@@ -106,11 +106,25 @@ class _ChecklistState extends State<Checklist> {
                   key: ValueKey(tasks[index].id),
                   onDismissed: (DismissDirection direction) {
                     setState(() {
-                      log(direction.toString());
+                      TaskItem task = tasks.removeAt(index);
                       if(direction == DismissDirection.endToStart) {
-                        completedTasks.add(tasks.removeAt(index));
+                        // Completed Tasks
+                        fsCollection
+                            .doc(task.id.toString())
+                            .update({"completed": true}).then((value) {
+                          print("Successfully set task <${task.name}> as completed!");
+                        }).onError((error, stackTrace) {
+                          print("Failed to set task <${task.name}> as completed.");
+                        });
                       } else {
-                        deletedTasks.add(tasks.removeAt(index));
+                        // Deleted Tasks
+                        fsCollection
+                            .doc(task.id.toString())
+                            .update({"deleted": true}).then((value) {
+                          print("Successfully set task <${task.name}> as deleted!");
+                        }).onError((error, stackTrace) {
+                          print("Failed to set task <${task.name}> as deleted.");
+                        });
                       }
                     });
                   },
@@ -168,12 +182,42 @@ class _ChecklistState extends State<Checklist> {
                                       "startTime": taskItem.startTime,
                                       "endTime": taskItem.endTime,
                                       "duration": taskItem.duration.toString(),
-                                      "calendarId": selectedCalendar!.id,
                                     }).then((value) {
                                       print("Successfully updated task <${taskItem.name}>!");
                                     }).onError((error, stackTrace) {
                                       print("Failed to update task <${taskItem.name}>.");
                                     });
+                                    
+                                    fsCollection.doc(taskItem.id.toString())
+                                        .get()
+                                        .then((taskValue) async {
+                                          // modifying task item in Google Calendar
+                                          String eventId = taskValue.get("eventId");
+
+                                          api.Event taskEvent = await widget.calendar.events.get(selectedCalendar!.id!, eventId);
+
+                                          var start = api.EventDateTime();
+                                          start.timeZone = selectedCalendar!.timeZone!;
+                                          start.dateTime = taskItem.startTime;
+                                          var end = api.EventDateTime();
+                                          end.timeZone = selectedCalendar!.timeZone!;
+                                          if(taskItem.endMethod == EndMethod.endTime) {
+                                            end.dateTime = taskItem.endTime;
+                                          } else {
+                                            end.dateTime = taskItem.startTime.add(taskItem.duration!);
+                                          }
+
+                                          taskEvent.summary = taskItem.name;
+                                          taskEvent.start = start;
+                                          taskEvent.end = end;
+
+                                          widget.calendar.events.update(taskEvent, selectedCalendar!.id!, eventId);
+                                          print("Successfully modified task <${taskItem.name}>!");
+                                    }).onError((error, stackTrace) {
+                                      print("Failed modify task <${taskItem.name}>.");
+                                    });
+
+
 
                                     setState(() {
                                       tasks[index] = taskItem;
@@ -243,59 +287,61 @@ class _ChecklistState extends State<Checklist> {
                 );
 
                 if(taskItem != null) {
-                  // recording task item to Firestore
-                  fsCollection
-                      .doc(taskItem.id.toString())
-                      .set({
-                    "taskName": taskItem.name,
-                    "startTime": taskItem.startTime,
-                    "endTime": taskItem.endTime,
-                    "duration": taskItem.duration.toString(),
-                    "calendarId": selectedCalendar!.id,
-                    "deleted": false,
-                    "completed": false,
-                  }).then((value) {
-                    print("Successfully added task <${taskItem.name}>!");
-                  }).onError((error, stackTrace) {
-                    print("Failed to add task <${taskItem.name}>.");
-                  });
-
-                  // updates and increments the id
-                  fsCollection
-                      .doc("%%meta")
-                      .update({"counter": id+1})
-                      .then((value) {
-                    print("ID counter successfully incremented [${id+1}]!");
-                  })
-                      .onError((error, stackTrace) {
-                    print("ID failed to be incremented.");
-                  });
-
                   // adding task item to user's Google Calendar
 
-                  // String calendarId = "primary";
-                  //
-                  // api.Event event = api.Event();
-                  //
-                  // var start = api.EventDateTime();
-                  // start.timeZone = "GMT+05:00";
-                  // start.dateTime = DateTime(2022, 6, 20);
-                  // var end = api.EventDateTime();
-                  // end.timeZone = "GMT+05:00";
-                  // start.dateTime = DateTime(2022, 6, 30);
-                  //
-                  // event.summary = "Test";
-                  // event.start = start;
-                  // event.end = end;
-                  //
-                  // widget.calendar.events.insert(event, calendarId).then((value) {
-                  //   print("ADDING_________________${value.status}");
-                  //   if (value.status == "confirmed") {
-                  //     log('Event added in google calendar');
-                  //   } else {
-                  //     log("Unable to add event in google calendar");
-                  //   }
-                  // });
+                  api.Event event = api.Event();
+
+                  var start = api.EventDateTime();
+                  start.timeZone = selectedCalendar!.timeZone!;
+                  start.dateTime = taskItem.startTime;
+                  var end = api.EventDateTime();
+                  end.timeZone = selectedCalendar!.timeZone!;
+                  if(taskItem.endMethod == EndMethod.endTime) {
+                    end.dateTime = taskItem.endTime;
+                  } else {
+                    end.dateTime = taskItem.startTime.add(taskItem.duration!);
+                  }
+
+                  event.summary = taskItem.name;
+                  event.start = start;
+                  event.end = end;
+
+                  widget.calendar.events.insert(event, selectedCalendar!.id!).then((eventValue) {
+                    if (eventValue.status == "confirmed") {
+                      log('Event added in google calendar');
+                    } else {
+                      log("Unable to add event in google calendar");
+                    }
+
+                    // recording task item to Firestore
+                    fsCollection
+                        .doc(taskItem.id.toString())
+                        .set({
+                      "taskName": taskItem.name,
+                      "startTime": taskItem.startTime,
+                      "endTime": taskItem.endTime,
+                      "duration": taskItem.duration.toString(),
+                      "calendarId": selectedCalendar!.id,
+                      "deleted": false,
+                      "completed": false,
+                      "eventId": eventValue.id!,
+                    }).then((value) {
+                      print("Successfully added task <${taskItem.name}>!");
+                    }).onError((error, stackTrace) {
+                      print("Failed to add task <${taskItem.name}>.");
+                    });
+
+                    // updates and increments the id
+                    fsCollection
+                        .doc("%%meta")
+                        .update({"counter": id+1})
+                        .then((value) {
+                      print("ID counter successfully incremented [${id+1}]!");
+                    })
+                        .onError((error, stackTrace) {
+                      print("ID failed to be incremented.");
+                    });
+                  });
 
                   setState(() {
                     tasks.add(taskItem);
