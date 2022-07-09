@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:integrated_planner/task_item.dart';
 import 'package:intl/intl.dart';
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
-import 'package:smart_select/smart_select.dart';
 
 import 'number_text_field.dart';
 
@@ -21,15 +20,9 @@ class ModifyTask extends StatefulWidget {
 }
 
 class _ModifyTaskState extends State<ModifyTask> {
-  String endMethodChoiceValue = '';
-  List<S2Choice<String>> options = [
-    S2Choice<String>(value: 'endt', title: 'End Time'),
-    S2Choice<String>(value: 'durt', title: 'Duration'),
-  ];
-
   final modifyFormKey = GlobalKey<FormState>();
 
-  final format = DateFormat("yyyy-MM-dd HH:mm");
+  final format = DateFormat("yyyy-MM-dd HH:mm:ss");
   late final TextEditingController taskNameController;
   late final TextEditingController startTimeController;  // time in format of this.format
   late EndMethod endMethod;
@@ -43,10 +36,10 @@ class _ModifyTaskState extends State<ModifyTask> {
   void initState() {
     super.initState();
     taskNameController = TextEditingController(text: widget.initTaskItem?.name ?? "");
-    startTimeController = TextEditingController(text: widget.initTaskItem?.startTime ?? "");
+    startTimeController = TextEditingController(text: widget.initTaskItem?.startTime == null ? " " : format.format(widget.initTaskItem!.startTime));
     endMethod = widget.initTaskItem?.endMethod ?? EndMethod.endTime;
     endMethodValue = endMethod == EndMethod.endTime ? "endt" : "durt";
-    endTimeController = TextEditingController(text: widget.initTaskItem?.endTime ?? "");
+    endTimeController = TextEditingController(text: widget.initTaskItem?.endTime == null ? " " : format.format(widget.initTaskItem!.endTime!));
     daysController = TextEditingController(text: (widget.initTaskItem?.duration?.inDays ?? 0).toString());
     hoursController = TextEditingController(text: ((widget.initTaskItem?.duration?.inHours ?? 0) % 24).toString());
     minutesController = TextEditingController(text: ((widget.initTaskItem?.duration?.inMinutes ?? 0) % 60).toString());
@@ -219,10 +212,17 @@ class _ModifyTaskState extends State<ModifyTask> {
                       if(duration == const Duration()) {
                         duration = const Duration(minutes: 1);
                       }
-
+                      log(endTimeController.text);
                       Navigator.pop(
                         context,
-                        TaskItem(widget.id, taskNameController.text, startTimeController.text, endMethod, endTimeController.text, duration),  // TODO: add a mechanism for ID counter
+                        TaskItem(
+                          widget.id,
+                          taskNameController.text,
+                          DateTime.parse(startTimeController.text),
+                          endMethod,
+                          endTimeController.text.trim() != "" ? DateTime.parse(endTimeController.text) : null,
+                          duration,
+                        ),  // TODO: add a mechanism for ID counter
                       );
                     }
                   },

@@ -6,10 +6,16 @@ import 'package:googleapis/calendar/v3.dart' as api;
 import 'package:integrated_planner/checklist.dart';
 import 'package:http/http.dart' as http;
 import 'google_http_client.dart';
-
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -49,24 +55,25 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   static const _scopes = <String>[api.CalendarApi.calendarEventsScope, api.CalendarApi.calendarReadonlyScope];
-
-  @override
-  void initState() {
-    super.initState();
-  }
+  late String uid;
+  GoogleSignIn? _googleSignIn;
 
   Future<http.Client> getHttpClient() async {
-    final _googleSignIn = GoogleSignIn(
+    log("1");
+    log("A");
+    _googleSignIn = GoogleSignIn(
       scopes: _scopes,
     );
 
     try {
-      GoogleSignInAccount googleUser = (await _googleSignIn.signIn())!;
+      log("2");
+      GoogleSignInAccount? googleUser = await _googleSignIn!.signInSilently();
+      googleUser ??= (await _googleSignIn!.signIn())!;
+      log("3");
       var headers = (await googleUser.authHeaders);
-
+      uid = googleUser.id;
       final baseClient = new http.Client();
       final authenticateClient = AuthenticateClient(headers, baseClient);
-
       return authenticateClient;
     } catch (error) {
       print(error);
@@ -84,45 +91,30 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Image.asset("logo.png"),
+            Image.asset(
+              "logo.png",
+              height: 200,
+              width: 200,
+            ),
+            SizedBox(height: 100,),
             ElevatedButton(
               onPressed: () async {
-                var client = await getHttpClient();
+                var db = FirebaseFirestore.instance;
+
+                var client = await getHttpClient();  // also sets uid
                 var calendar = api.CalendarApi(client);
 
-                var calendarList = await calendar.calendarList.list();
-                for (var element in calendarList.items!) {
-                  log(element.summary!);
-                }
-
-                // String calendarId = "primary";
-                //
-                // api.Event event = api.Event();
-                //
-                // var start = api.EventDateTime();
-                // start.timeZone = "GMT+05:00";
-                // start.dateTime = DateTime(2022, 6, 20);
-                // var end = api.EventDateTime();
-                // end.timeZone = "GMT+05:00";
-                // start.dateTime = DateTime(2022, 6, 30);
-                //
-                // event.summary = "Test";
-                // event.start = start;
-                // event.end = end;
-                //
-                // calendar.events.insert(event, calendarId).then((value) {
-                //   print("ADDING_________________${value.status}");
-                //   if (value.status == "confirmed") {
-                //     log('Event added in google calendar');
-                //   } else {
-                //     log("Unable to add event in google calendar");
-                //   }
-                // });
-
-                Navigator.push(
+                await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (BuildContext context) => Checklist())
+                    MaterialPageRoute(builder: (BuildContext context) => Checklist(
+                      uid: uid,
+                      db: db,
+                      calendar: calendar,
+                    ))
                 );
+
+                client.close();
+                _googleSignIn!.signOut();
               },
               child: const Text("Sign in with Google."),
             ),

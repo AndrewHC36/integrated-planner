@@ -1,49 +1,99 @@
 import 'dart:developer';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:duration/duration.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:googleapis/calendar/v3.dart' as api;
 import 'package:integrated_planner/task_item.dart';
 
+import 'calendar_list.dart';
 import 'modify_task.dart';
 
 class Checklist extends StatefulWidget {
-  const Checklist({Key? key}) : super(key: key);
+  const Checklist({Key? key, required this.uid, required this.db, required this.calendar}) : super(key: key);
+
+  final String uid;
+  final FirebaseFirestore db;
+  final api.CalendarApi calendar;
 
   @override
   State<Checklist> createState() => _ChecklistState();
 }
 
 class _ChecklistState extends State<Checklist> {
-  int idCounter = 20;
+  late final CollectionReference fsCollection;
+  api.CalendarListEntry? selectedCalendar;
+
   final List<TaskItem> tasks = <TaskItem>[
-    TaskItem(0, "Task A", "2022-07-04 04:50", EndMethod.duration, null, Duration()),
-    TaskItem(3, "Task B", "2022-06-04 03:55", EndMethod.endTime, "2022-07-04 04:50", null),
-    TaskItem(5, "Task C", "2022-05-04 04:45", EndMethod.duration, null, Duration()),
-    TaskItem(6, "Task D", "2022-04-04 20:50", EndMethod.endTime, "2022-07-04 00:00", null),
-    TaskItem(10, "Task E", "2022-03-04 12:50", EndMethod.duration, null, Duration()),
+    // TaskItem(0, "Task A", DateTime(2022, 7, 4, 4, 50), EndMethod.duration, null, Duration()),
+    // TaskItem(3, "Task B", DateTime(2022, 7, 4, 4, 50), EndMethod.endTime, DateTime(2022, 7, 4, 4, 50), null),
+    // TaskItem(5, "Task C", DateTime(2022, 7, 4, 4, 50), EndMethod.duration, null, Duration()),
+    // TaskItem(6, "Task D", DateTime(2022, 7, 4, 4, 50), EndMethod.endTime, DateTime(2022, 7, 4, 4, 50), null),
+    // TaskItem(10, "Task E", DateTime(2022, 7, 4, 4, 50), EndMethod.duration, null, Duration()),
   ];
 
   final List<TaskItem> deletedTasks = <TaskItem>[];  // for records
   final List<TaskItem> completedTasks = <TaskItem>[];  // for records
 
   @override
+  void initState() {
+    super.initState();
+
+    fsCollection = widget.db.collection(widget.uid);
+
+    widget.calendar.calendarList.list().then((value) async {
+      setState(() {
+        selectedCalendar = value.items![0];
+      });
+
+      var doc = await fsCollection.doc("%%meta").get();
+      if(!doc.exists) {
+        fsCollection
+            .doc("%%meta")
+            .set({"counter": 0})
+            .then((value) {
+          print("Successfully initialized meta document!");
+        })
+            .onError((error, stackTrace) {
+          print("Failed to initialize meta document.");
+        });
+      } else {
+        print("Counter num: [${doc.get("counter")}]");
+      }
+
+      _refreshTaskLists();
+    }).onError((error, stackTrace) {
+      print("Error: cannot get the list of calendar for the user");
+    });
+
+  }
+
+  void _refreshTaskLists() async {
+    // refreshes task list (useful whe changing calendar)
+    tasks.clear();
+
+    QuerySnapshot snapshot = await fsCollection.get();
+    setState(() {
+      for (var doc in snapshot.docs) {
+        if(!doc.id.startsWith("%%")) {
+          // no magic docs
+          if(doc.get("calendarId") == selectedCalendar!.id && !(doc.get("completed") || doc.get("deleted"))) {
+            // documents with correct calendar and is not completed or deleted
+            log(doc.get("duration"));
+            EndMethod endMethod = doc.get("endTime") == null ? EndMethod.duration : EndMethod.endTime;
+            tasks.add(TaskItem(int.parse(doc.id), doc.get("taskName"), doc.get("startTime").toDate(), endMethod, doc.get("endTime")?.toDate(), parseTime(doc.get("duration"))));
+          }
+        }
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const Text("TODO"),
-            ElevatedButton(
-              onPressed: () {
-
-              },
-              child: const Text("Google Calendar"),
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.black12),
-              ),
-            ),
-          ]
-        ),
+        title: Text("Checklist: ${selectedCalendar?.summary ?? "loading..."}"),
       ),
       body: Column(
         children: [
@@ -97,7 +147,9 @@ class _ChecklistState extends State<Checklist> {
                             child: IconButton(
                                 icon: const Icon(Icons.menu),
                                 onPressed: () async {
-                                  final taskItem = await Navigator.push(
+                                  // --- modifying tasks ---
+
+                                  final TaskItem? taskItem = await Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (BuildContext context) => ModifyTask(
@@ -106,7 +158,23 @@ class _ChecklistState extends State<Checklist> {
                                         ),
                                       )
                                   );
+
                                   if(taskItem != null) {
+                                    // modifying task item to be updated in Firestore
+                                    fsCollection
+                                        .doc(taskItem.id.toString())
+                                        .update({
+                                      "taskName": taskItem.name,
+                                      "startTime": taskItem.startTime,
+                                      "endTime": taskItem.endTime,
+                                      "duration": taskItem.duration.toString(),
+                                      "calendarId": selectedCalendar!.id,
+                                    }).then((value) {
+                                      print("Successfully updated task <${taskItem.name}>!");
+                                    }).onError((error, stackTrace) {
+                                      print("Failed to update task <${taskItem.name}>.");
+                                    });
+
                                     setState(() {
                                       tasks[index] = taskItem;
                                     });
@@ -135,25 +203,111 @@ class _ChecklistState extends State<Checklist> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final taskItem = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (BuildContext context) => ModifyTask(id: idCounter,))
-          );
-          if(taskItem != null) {
-            setState(() {
-              tasks.add(taskItem);
-              idCounter++;
-            });
-          }
-        },
-        label: const Text("Add Task"),
-        icon: const Icon(Icons.add),
-        backgroundColor: Colors.lightGreen,
+      floatingActionButton: Stack(
+        children: [
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: FloatingActionButton.extended(
+              heroTag: "calendarButton",
+              onPressed: () async {
+                log(await widget.calendar.calendarList.list().toString());
+                var calendarList = await widget.calendar.calendarList.list();
+
+                var calendar = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (BuildContext context) => CalendarListView(calendars: calendarList.items!,))
+                );
+                setState(() {
+                  selectedCalendar = calendar;
+                });
+                _refreshTaskLists();
+              },
+              label: const Text("Calendar"),
+              icon: const Icon(Icons.calendar_month),
+              backgroundColor: Colors.orange,
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: FloatingActionButton(
+              heroTag: "taskButton",
+              onPressed: () async {
+                // --- adding new tasks ---
+
+                // loads the id counter
+                int id = (await fsCollection.doc("%%meta").get()).get("counter");
+
+                final TaskItem? taskItem = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (BuildContext context) => ModifyTask(id: id,))
+                );
+
+                if(taskItem != null) {
+                  // recording task item to Firestore
+                  fsCollection
+                      .doc(taskItem.id.toString())
+                      .set({
+                    "taskName": taskItem.name,
+                    "startTime": taskItem.startTime,
+                    "endTime": taskItem.endTime,
+                    "duration": taskItem.duration.toString(),
+                    "calendarId": selectedCalendar!.id,
+                    "deleted": false,
+                    "completed": false,
+                  }).then((value) {
+                    print("Successfully added task <${taskItem.name}>!");
+                  }).onError((error, stackTrace) {
+                    print("Failed to add task <${taskItem.name}>.");
+                  });
+
+                  // updates and increments the id
+                  fsCollection
+                      .doc("%%meta")
+                      .update({"counter": id+1})
+                      .then((value) {
+                    print("ID counter successfully incremented [${id+1}]!");
+                  })
+                      .onError((error, stackTrace) {
+                    print("ID failed to be incremented.");
+                  });
+
+                  // adding task item to user's Google Calendar
+
+                  // String calendarId = "primary";
+                  //
+                  // api.Event event = api.Event();
+                  //
+                  // var start = api.EventDateTime();
+                  // start.timeZone = "GMT+05:00";
+                  // start.dateTime = DateTime(2022, 6, 20);
+                  // var end = api.EventDateTime();
+                  // end.timeZone = "GMT+05:00";
+                  // start.dateTime = DateTime(2022, 6, 30);
+                  //
+                  // event.summary = "Test";
+                  // event.start = start;
+                  // event.end = end;
+                  //
+                  // widget.calendar.events.insert(event, calendarId).then((value) {
+                  //   print("ADDING_________________${value.status}");
+                  //   if (value.status == "confirmed") {
+                  //     log('Event added in google calendar');
+                  //   } else {
+                  //     log("Unable to add event in google calendar");
+                  //   }
+                  // });
+
+                  setState(() {
+                    tasks.add(taskItem);
+                  });
+                }
+              },
+              child: const Icon(Icons.add),
+              backgroundColor: Colors.lightGreen,
+            ),
+          ),
+        ]
       ),
     );
   }
 }
-
-
